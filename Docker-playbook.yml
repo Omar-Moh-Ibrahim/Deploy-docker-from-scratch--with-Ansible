@@ -1,0 +1,103 @@
+- name: Install and Manage Docker Using community.docker
+  hosts: prod
+  become: yes
+  tasks:
+    # Install prerequisites and dependencies
+    - name: Install dependencies (Ubuntu)
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+        state: present
+        update_cache: yes
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Install dependencies (Rocky Linux)
+      dnf:
+        name:
+          - dnf-plugins-core
+          - ca-certificates
+          - curl
+        state: present
+        update_cache: yes
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    # Add Docker GPG key
+    - name: Add Docker GPG key (Ubuntu)
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      when: ansible_facts['os_family'] == 'Debian'
+
+    # Add Docker repository
+    - name: Add Docker repository (Ubuntu)
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu focal stable
+        state: present
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Add Docker repository (Rocky Linux)
+      command: >
+        dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    # Install Docker packages
+    - name: Install Docker packages (Ubuntu)
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Install Docker packages (Rocky Linux)
+      dnf:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    # Start and enable Docker service
+    - name: Start and enable Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    # Install required Python libraries
+    - name: Install required Python libraries (Ubuntu)
+      apt:
+        name:
+          - python3
+          - python3-pip
+        state: present
+        update_cache: yes
+      when: ansible_facts['os_family'] == 'Debian'
+
+    - name: Install required Python libraries (Rocky Linux)
+      dnf:
+        name:
+          - python3
+          - python3-pip
+        state: present
+        update_cache: yes
+      when: ansible_facts['os_family'] == 'RedHat'
+
+    # Install Docker SDK for Python
+    - name: Install Docker SDK for Python
+      pip:
+        name: docker
+
+    # Manage Docker containers with community.docker
+    - name: Pull and run Nginx container
+      community.docker.docker_container:
+        name: nginx-container
+        image: nginx:latest
+        state: started
+        ports:
+          - "8081:80"
